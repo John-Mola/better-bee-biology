@@ -48,16 +48,16 @@ df_bib_wrangled <- df_bib_files %>%
 df_bib_duplicate_author_removed <- df_bib_wrangled %>% 
   distinct(first_author, PY, .keep_all = TRUE)
 
-# 10 PERCENT TOTAL --------------------------------------------------------
+# PERCENT TOTAL --------------------------------------------------------
 
-df_bib_10total <- df_bib_duplicate_author_removed %>% 
+df_bib_percent_total <- df_bib_duplicate_author_removed %>% 
   sample_frac(size = percent_to_sample)
 
 
 
-# 10 PERCENT PER YEAR -----------------------------------------------------
+# PERCENT PER YEAR -----------------------------------------------------
 
-df_bib_10year <- df_bib_duplicate_author_removed %>% 
+df_bib_percent_year <- df_bib_duplicate_author_removed %>% 
   group_by(PY) %>% 
   sample_frac(size = percent_to_sample) %>% 
   ungroup()
@@ -66,15 +66,15 @@ df_bib_10year <- df_bib_duplicate_author_removed %>%
 # ASSIGNMENTS -------------------------------------------------------------
 
 
-assignments_10total <- df_bib_10total %>% 
+assignments_percent_total <- df_bib_percent_total %>% 
   mutate(assigned_to = rep(sample(humans), length = nrow(.)))
 
-assignments_10year <- df_bib_10year %>% 
+assignments_percent_year <- df_bib_percent_year %>% 
   mutate(assigned_to = rep(sample(humans), length = nrow(.)))
 
 # check that it worked
-assignments_10total %>% group_by(assigned_to) %>% tally()
-assignments_10year %>% group_by(assigned_to) %>% tally()
+assignments_percent_total %>% group_by(assigned_to) %>% tally()
+assignments_percent_year %>% group_by(assigned_to) %>% tally()
 
 
 # SAVE OUTPUTS ------------------------------------------------------------
@@ -92,18 +92,19 @@ write_csv(assignments_10year, "./data/data_output/assigned_no_dup_10percent_year
 
 # REMOVE PLOTTING FROM HERE LATER, NOT TIDY! ------------------------------
 
-df_combined <- df_bib_10total %>% 
+df_combined <- df_bib_percent_total %>% 
   mutate(how_sampled = "total") %>% 
-  bind_rows(., mutate(df_bib_10year, how_sampled = "by year")) %>% 
+  bind_rows(., mutate(df_bib_percent_year, how_sampled = "by year")) %>% 
   group_by(PY, how_sampled) %>% 
   tally()
 
-df_combined %>% 
+combined_plot <- df_combined %>% 
   ggplot(., aes(x = PY, y = n, color = how_sampled)) +
-  geom_point(size = 3, alpha = 0.5) +
-  geom_path() +
+  geom_path(alpha = 0.5) +
+  geom_point(size = 3, alpha = 0.7) +
   theme_classic(base_size = 15) +
   labs(x = "Publication Year", y = "Number of Publications \n Passing Filter", color = "How randomly selected?") +
-  scale_color_brewer(type = "qual", palette = 2, labels = c("10% Each Year", "10% Total")) +
+  scale_color_brewer(type = "qual", palette = 2, labels = c(paste0(percent_to_sample*100, "% Each Year"), paste0(percent_to_sample*100, "% Total"))) +
   theme(legend.position = c(0.3, 0.8), legend.title = element_blank())
-  
+
+ggsave(plot = combined_plot, "./figures/compare_byyear_versus_total_sampling.tiff", dpi = 300, height = 4, width = 5, units = "in")  
