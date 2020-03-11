@@ -12,6 +12,16 @@
 library(tidyverse)
 library(bibliometrix)
 
+
+# PARAMETERS --------------------------------------------------------------
+
+# define the percent of papers to sample
+percent_to_sample <- 0.10
+
+# the humans who will be reviewing papers
+humans <-  c("John M", "Jon Koch", "Janean S", "Ana M")
+
+
 # DATA SOURCES ------------------------------------------------------------
 
 # downloaded results from the following search string at WOK:
@@ -41,7 +51,7 @@ df_bib_duplicate_author_removed <- df_bib_wrangled %>%
 # 10 PERCENT TOTAL --------------------------------------------------------
 
 df_bib_10total <- df_bib_duplicate_author_removed %>% 
-  sample_frac(size = 0.10)
+  sample_frac(size = percent_to_sample)
 
 
 
@@ -49,15 +59,12 @@ df_bib_10total <- df_bib_duplicate_author_removed %>%
 
 df_bib_10year <- df_bib_duplicate_author_removed %>% 
   group_by(PY) %>% 
-  sample_frac(size = 0.10) %>% 
+  sample_frac(size = percent_to_sample) %>% 
   ungroup()
-
-
 
 
 # ASSIGNMENTS -------------------------------------------------------------
 
-humans <-  c("John M", "Jon Koch", "Janean S", "Ana M")
 
 assignments_10total <- df_bib_10total %>% 
   mutate(assigned_to = rep(sample(humans), length = nrow(.)))
