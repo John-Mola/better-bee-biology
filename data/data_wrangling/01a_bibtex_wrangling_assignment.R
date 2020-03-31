@@ -32,6 +32,7 @@ percent_to_sample <- 0.25
 # the humans who will be reviewing papers
 humans <-  c("john_mola", "jon_koch", "janean_sharkey", "ana_montero", "byron_love", "tien_lindsey", "kiera_newman")
 
+
 # a seed for consistent results
 set.seed(seed = 1912) # the publication year of Sladen's Humble Bee
 
@@ -104,6 +105,7 @@ write_csv(df_bib_duplicate_author_removed, "./data/data_output/no_dup_author_yea
 assignments_percent_year %>% 
   group_by(assigned_to) %>%
   group_walk(~ write_csv(.x, paste0("./data/data_output/assignments/",.y$assigned_to, "_assigned_noDup_25percent_byYear.csv")))
+
 
 
 
