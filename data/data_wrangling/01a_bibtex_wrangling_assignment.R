@@ -16,11 +16,13 @@ library(bibliometrix)
 # PARAMETERS --------------------------------------------------------------
 
 # define the percent of papers to sample
-percent_to_sample <- 0.10
+percent_to_sample <- 0.25
 
 # the humans who will be reviewing papers
-humans <-  c("John M", "Jon Koch", "Janean S", "Ana M")
+humans <-  c("John M", "Jon K", "Janean S", "Ana M", "Byron L", "Tien L", "Kiera N")
 
+# a seed for consistent results
+set.seed(seed = 1912) # the publication year of Sladen's Humble Bee
 
 # DATA SOURCES ------------------------------------------------------------
 
@@ -66,14 +68,14 @@ df_bib_percent_year <- df_bib_duplicate_author_removed %>%
 # ASSIGNMENTS -------------------------------------------------------------
 
 
-assignments_percent_total <- df_bib_percent_total %>% 
-  mutate(assigned_to = rep(sample(humans), length = nrow(.)))
+# assignments_percent_total <- df_bib_percent_total %>% 
+#   mutate(assigned_to = rep(sample(humans), length = nrow(.)))
 
 assignments_percent_year <- df_bib_percent_year %>% 
   mutate(assigned_to = rep(sample(humans), length = nrow(.)))
 
 # check that it worked
-assignments_percent_total %>% group_by(assigned_to) %>% tally()
+# assignments_percent_total %>% group_by(assigned_to) %>% tally()
 assignments_percent_year %>% group_by(assigned_to) %>% tally()
 
 
@@ -83,9 +85,9 @@ write_csv(df_bib_wrangled, "./data/data_output/full_WOK_papers_list_wrangled.csv
 
 write_csv(df_bib_duplicate_author_removed, "./data/data_output/no_dup_author_year_WOK_papers_list_wrangled.csv")
 
-write_csv(assignments_10total, "./data/data_output/assigned_no_dup_10percent_total.csv")
+#write_csv(assignments_10total, "./data/data_output/assigned_no_dup_10percent_total.csv")
 
-write_csv(assignments_10year, "./data/data_output/assigned_no_dup_10percent_year.csv")
+write_csv(assignments_percent_year, "./data/data_output/assigned_no_dup_25percent_year.csv")
 
 
 
@@ -106,5 +108,7 @@ combined_plot <- df_combined %>%
   labs(x = "Publication Year", y = "Number of Publications \n Passing Filter", color = "How randomly selected?") +
   scale_color_brewer(type = "qual", palette = 2, labels = c(paste0(percent_to_sample*100, "% Each Year"), paste0(percent_to_sample*100, "% Total"))) +
   theme(legend.position = c(0.3, 0.8), legend.title = element_blank())
+
+combined_plot
 
 ggsave(plot = combined_plot, "./figures/compare_byyear_versus_total_sampling.tiff", dpi = 300, height = 4, width = 5, units = "in")  
