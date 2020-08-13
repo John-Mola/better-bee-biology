@@ -1,0 +1,316 @@
+---
+title: "Preliminary results of Better Bee Biology literature scraping"
+author: "Compiled by John M. Mola"
+date: 'Updated: `r format(Sys.Date(), "%B %d, %Y")`'
+output:
+  html_document: 
+    code_folding: hide
+    toc: true
+    toc_depth: 2
+    theme: spacelab
+    df_print: tibble
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(message = FALSE, warning = FALSE)
+
+library(tidyverse)
+
+theme_set(theme_classic())
+theme_update(text = element_text(size = 15))
+
+```
+
+```{r load data}
+
+df_b3 <- read_rds("../data/data_output/literature-review-combined-downloaded-2020-07-31.RDS")
+
+```
+
+```{r data subsets}
+
+# excludes papers that were not reviewed (likely because they couldn't be found) by removing ones with "NA" in the "relevant" column
+df_completed <- df_b3 %>% 
+  filter(!is.na(relevant))
+
+# only the relevant papers
+df_relevant <- df_completed %>% 
+  filter(relevant == "yes")
+
+```
+
+
+## 1. Categories of the reviewed papers
+
+```{r paper types, fig.height=4.5, fig.width=5.5}
+
+df_completed %>% 
+  group_by(relevant) %>% 
+  tally() %>% 
+  #group_by(gathered_by) %>% 
+  mutate(total_reviewed = sum(n), percent_category = n/total_reviewed) %>% 
+  ggplot(., aes(x = reorder(relevant, -percent_category), y = percent_category*100)) +
+  geom_bar(stat = "identity") +
+  #facet_wrap(~gathered_by) +
+  # theme_bw() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(x = "", y = "Percent of papers in category")
+
+```
+
+## 2A. Bees captured across different capture methods
+
+**NB** Includes on studies where collection method is reported and the confidence in the number of bees was marked as "certain". Bees per year is calcu
+
+```{r captures by study, fig.height=5, fig.width=4.5}
+df_relevant %>% 
+  filter(!is.na(collection_method), confidence_n_bees == "certain") %>% 
+  ggplot(., aes(x = collection_method, y = n_bees_removed, fill = collection_method)) +
+  #geom_jitter(width = 0.1, size = 2, alpha = 0.5, aes(color = confidence_n_bees)) +
+  geom_boxplot(alpha = 0.5) + 
+  theme(legend.position = "none") +
+  labs(x = "Collection Method", y = "Total number of bees removed")
+```
+
+## 2B. Same as above, outliers excluded, zoomed in. 
+
+```{r captures by study no outliers, fig.height=5, fig.width=4.5}
+df_relevant %>% 
+  filter(!is.na(collection_method), confidence_n_bees == "certain") %>% 
+  ggplot(., aes(x = collection_method, y = n_bees_removed, fill = collection_method)) +
+  #geom_jitter(width = 0.1, size = 2, alpha = 0.5, aes(color = confidence_n_bees)) +
+  geom_boxplot(alpha = 0.5, outlier.shape = NA) + 
+  theme(legend.position = "none") +
+  labs(x = "Collection Method", y = "Total number of bees removed") +
+  coord_cartesian(ylim = c(0, 10000))
+```
+
+## 3. Percent reporting museum deposition info
+
+**NB** This is silly as a figure, but I didn't want to do text here. In a manuscript probably much easier to just state it. Or have it as a small inset figure within a larger display item...
+
+```{r deposition total, fig.height = 3.5, fig.width=4}
+
+df_relevant %>% 
+  group_by(deposition_info) %>% 
+  tally() %>% 
+  mutate(percent_reporting = n/sum(n)) %>% 
+  filter(!is.na(deposition_info)) %>% 
+  ggplot(., aes(x = reorder(deposition_info, -n), y = percent_reporting, fill = deposition_info)) +
+  geom_bar(stat = "identity") +
+  theme(legend.position = "none") +
+  labs(x = "Reported museum deposition info?", y = "Percent Reporting")
+
+```
+
+
+## 4. Percent reporting deposition info across years
+
+**NB** The earliest years have very few papers, so ~60% reporting might just be 3 out of 5 papers or something. 
+
+```{r deposition through years, fig.height=4.5, fig.width=5.5}
+
+df_relevant %>% 
+  group_by(deposition_info, PY) %>% 
+  tally() %>% 
+  group_by(PY) %>% 
+  mutate(year_pubs = sum(n)) %>% 
+  filter(deposition_info == "yes") %>% 
+  mutate(percent_reporting = n/year_pubs) %>% 
+  ggplot(., aes(x = PY, y = percent_reporting)) +
+  geom_point() +
+  labs(x = "Publication Year", y= "Proportion reporting museum \n deposition information")
+
+```
+
+## 5. Bees removed across time
+
+**NB** Only includes studies that reported collection method and we were confident in the number removed. Includes a LOESS smooth because why not? For what it's worth, the result looks basically the same when you calculate study duration using first/last year, but this requires fewer assumptions. 
+
+```{r bees removed across time, fig.height=4.5, fig.width=5.5}
+
+df_relevant %>% 
+  filter(!is.na(collection_method), confidence_n_bees == "certain") %>% 
+  # mutate(study_duration = (last_year - first_year)+1, bees_per_year = n_bees_removed/study_duration) %>% 
+  group_by(PY) %>% 
+  summarise(total_bees_py = sum(n_bees_removed, na.rm = T)) %>% 
+  ggplot(., aes(x = PY, y = total_bees_py)) +
+  geom_point(size = 2) +
+  geom_smooth(color = "black", fill = "grey80") +
+  labs(y = "Total bees removed", x = "Publication Year")
+
+
+```
+
+## 6. Collection methods through time
+
+```{r collection methods through time, fig.height=4.5, fig.width=5.5}
+
+df_relevant %>% 
+  group_by(PY, collection_method) %>% 
+  tally() %>% 
+  ggplot(., aes(x = PY, y = n, color = collection_method)) +
+  geom_path() +
+  geom_point() +
+  labs(x = "Publication Year", y = "Number of studies", color = "") +
+  theme(legend.position = c(0.25, 0.75))
+```
+
+## 7. No relationship between study duration and publication year
+
+```{r pub year study length, fig.height=4.5, fig.width=5.5}
+
+df_relevant %>% 
+  filter(!is.na(collection_method), confidence_n_bees != "voucher") %>% 
+  mutate(study_duration = (last_year - first_year)+1, bees_per_year = n_bees_removed/study_duration) %>% 
+  ggplot(., aes(x = PY, y = study_duration)) +
+  geom_jitter() +
+  geom_smooth()
+
+```
+
+## 8. Relationship between mean number of bees removed per study by collection type
+
+I dunno, there may be some weak relationship with passive growing over time but I'm not really convinced especially since passive studies don't really take off until 2010 anyway. I just thought of this and slapped it on here so I haven't really thought through what is appropriate. 
+
+```{r removal by type year, fig.height=4.5, fig.width=5.5}
+
+df_relevant %>% 
+  filter(!is.na(collection_method), confidence_n_bees == "certain") %>% 
+  # mutate(study_duration = (last_year - first_year)+1, bees_per_year = n_bees_removed/study_duration) %>% 
+  group_by(PY, collection_method) %>% 
+  summarise(mean_bees_removed = mean(n_bees_removed, na.rm = T), sd_bees_removed = sd(n_bees_removed, na.rm = T)) %>% 
+  ggplot(., aes(x = PY, y = mean_bees_removed, ymin = mean_bees_removed - sd_bees_removed, ymax = mean_bees_removed + sd_bees_removed, color = collection_method)) +
+  geom_pointrange() +
+  #geom_smooth(fill = "grey80", method = "lm", se = F) +
+  labs(y = "Total bees removed", x = "Publication Year", color = "") +
+  theme(legend.position = c(0.25, 0.75))
+
+
+```
+
+
+
+
+```{r dump from script, eval=FALSE}
+# PLAYING WITH THE DATA ---------------------------------------------------
+
+# df_relevant %>% 
+#   filter(!is.na(collection_method), confidence_n_bees != "voucher") %>% 
+#   mutate(study_duration = (last_year - first_year)+1, bees_per_year = n_bees_removed/study_duration) %>%  
+#   ggplot(., aes(x = collection_method, y = bees_per_year)) +
+#   geom_jitter(width = 0.1, size = 2, alpha = 0.5, aes(color = confidence_n_bees)) +
+#   geom_boxplot(alpha = 0.5) + 
+#   theme_classic()
+# 
+# df_relevant %>% 
+#   group_by(deposition_info, PY) %>% 
+#   tally() %>% 
+#   group_by(PY) %>% 
+#   mutate(year_pubs = sum(n)) %>% 
+#   filter(deposition_info == "yes") %>% 
+#   mutate(percent_reporting = n/year_pubs) %>% 
+#   ggplot(., aes(x = PY, y = percent_reporting)) +
+#   geom_point()
+
+# df_relevant %>% 
+#   group_by(deposition_info) %>% 
+#   tally()
+
+
+# df_so_far %>% 
+#   group_by(PY) %>% 
+#   mutate(pubs_that_year = n()) %>% 
+#   filter(relevant == "yes") %>% 
+#   group_by(PY) %>% 
+#   summarise(n = n(), pubs_that_year = first(pubs_that_year), percent_relevant = n/pubs_that_year) %>% 
+#   ggplot(., aes(x = PY, y = percent_relevant)) +
+#   geom_point()
+
+# number of bees per publication year (controlling for study duration) That massive outlier is hte Westphal study...which occurs across five countries, so makes sense there's so many bees
+# df_relevant %>% 
+#   filter(!is.na(collection_method), confidence_n_bees != "voucher") %>% 
+#   mutate(study_duration = (last_year - first_year)+1, bees_per_year = n_bees_removed/study_duration) %>% 
+#   group_by(PY) %>% 
+#   summarise(total_bees_py = sum(bees_per_year, na.rm = T)) %>% 
+#   ggplot(., aes(x = PY, y = total_bees_py)) +
+#   geom_point() 
+# 
+# # same as above, exclude westphal
+# df_relevant %>% 
+#   filter(!is.na(collection_method), confidence_n_bees != "voucher", DI != "10.1890/07-1292.1") %>% 
+#   mutate(study_duration = (last_year - first_year)+1, bees_per_year = n_bees_removed/study_duration) %>% 
+#   group_by(PY) %>% 
+#   summarise(total_bees_py = sum(bees_per_year, na.rm = T), n=n(), mean_bpy = mean(bees_per_year, na.rm = TRUE)) %>%  
+#   # added "n" since we're not done adding the numbers. So this says number of bees collected per year per study (which I guess is just a complex way of calculating mean?)
+#   ggplot(., aes(x = PY, y = total_bees_py/n)) +
+#   geom_point() +
+#   geom_smooth(method = "lm", formula = y ~ x + I(x^2), se = F)  
+
+df_relevant %>% 
+  group_by(PY, collection_method) %>% 
+  tally() %>% 
+  ggplot(., aes(x = PY, y = n, color = collection_method)) +
+  geom_path() +
+  geom_point()
+
+
+
+# df_so_far %>% 
+#   filter(str_detect(follow_up, 'PROBLEM|DISCUSSION')) %>% 
+#   group_by(gathered_by) %>% 
+#   tally()
+# 
+# df_so_far %>% 
+#   filter(str_detect(follow_up, 'DISCUSSION')) %>% 
+#   select(follow_up)
+# 
+
+
+# number of studies per publication year by collection type
+df_rel2 <- df_so_far %>% 
+  filter(relevant %in% c("yes", "no, observational", "no, review or meta-analisis"))
+
+df_rel2 %>% 
+  group_by(PY, relevant, collection_method) %>% 
+  tally() %>% 
+  mutate(study_type = if_else(relevant == "yes", collection_method, relevant)) %>% 
+  filter(PY < 2012) %>%
+  ggplot(., aes(x = PY, y = n, color = study_type)) +
+  geom_path()
+
+
+# what proportion have we reviewed so far
+
+df_all %>% 
+  mutate(reviewed_yet = if_else(!is.na(relevant), "yes", "no")) %>% 
+  group_by(PY, reviewed_yet) %>% 
+  tally() %>% 
+  pivot_wider(names_from = reviewed_yet, values_from = n) %>% 
+  mutate(total = no+yes, proportion_reviewed = yes/total) %>% 
+  ggplot(., aes(x = PY, y = proportion_reviewed)) +
+  geom_point()
+
+
+# df_relevant %>% 
+#   mutate(lag_time = PY - last_year) %>% 
+#   ggplot(., aes(x = n_bees_removed/(last_year-first_year), y = lag_time)) +
+#   geom_point()
+
+
+df_so_far %>% 
+  group_by(gathered_by) %>% 
+  tally()
+
+
+df_so_far
+
+df_relevant %>% 
+  filter(!is.na(collection_method), confidence_n_bees != "voucher") %>% 
+  mutate(study_duration = (last_year - first_year)+1, bees_per_year = n_bees_removed/study_duration) %>% 
+  ggplot(., aes(x = PY, y = study_duration)) +
+  geom_jitter() +
+  geom_smooth()
+  
+```
+

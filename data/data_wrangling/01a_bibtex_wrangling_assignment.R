@@ -26,20 +26,20 @@ named_group_split <- function(.tbl, ...) {
 
 # PARAMETERS --------------------------------------------------------------
 
-# define the percent of papers to sample
-percent_to_sample <- 0.25
-
-# the humans who will be reviewing papers
-humans <-  c("john_mola", "jon_koch", "janean_sharkey", "ana_montero", "byron_love", "tien_lindsey", "kiera_newman")
-
-
-# a seed for consistent results
-set.seed(seed = 1912) # the publication year of Sladen's Humble Bee
+# # define the percent of papers to sample
+# percent_to_sample <- 0.25
+# 
+# # the humans who will be reviewing papers
+# humans <-  c("john_mola", "jon_koch", "janean_sharkey", "ana_montero", "byron_love", "tien_lindsey", "kiera_newman")
+# 
+# 
+# # a seed for consistent results
+# set.seed(seed = 1912) # the publication year of Sladen's Humble Bee
 
 # DATA SOURCES ------------------------------------------------------------
 
 # downloaded results from the following search string at WOK:
-# ((TS= (pollinat* AND (*bee OR *bees OR bee OR bees) NOT( beekeep* OR apicultur* OR colony collapse* OR apis))) OR (TS = (apoidea AND (*bee OR *bees OR bee OR bees) NOT( beekeep* OR apicultur* OR colony collapse* OR apis)))) AND DOCUMENT TYPES: (Article) 
+# Title search = "bumblebees OR bumble bees"
 # Timespan: 1990-2019. Indexes: SCI-EXPANDED.
 
 bib_path <- list.files(pattern="*.bib", path = "./data/data_raw/bibtex_downloads/", full.names = T)
